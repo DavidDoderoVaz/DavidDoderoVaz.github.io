@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renta de Autobuses Atenas | Acatlán de Osorio</title>
+    
+    <!-- LIBRERÍA DE MAPA INTERACTIVO -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --primary: #0b3c5d;
+            --secondary: #d9534f;
+            --whatsapp: #25d366;
+            --whatsapp-dark: #128c7e;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            color: var(--dark);
+            line-height: 1.6;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        header {
+            background: linear-gradient(rgba(11, 60, 93, 0.9), rgba(11, 60, 93, 0.9)), 
+                        url('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80') center/cover;
+            color: white;
+            text-align: center;
+            padding: 40px 15px 60px 15px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        header p {
+            font-size: 0.95rem;
+            padding: 0 10px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: -30px auto 30px auto;
+            padding: 0 15px;
+        }
+
+        .quote-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            margin-bottom: 30px;
+        }
+
+        .quote-card h2 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-control {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .form-control label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--primary);
+        }
+
+        .form-control input, .form-control select {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        /* AUTOCOMPLETADO */
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 180px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .autocomplete-item:hover {
+            background-color: var(--light);
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .map-container {
+            margin-bottom: 20px;
+        }
+
+        .map-container label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--primary);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .map-instruction {
+            font-size: 0.85rem;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        #map {
+            height: 250px;
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+        }
+
+        .btn-ws {
+            width: 100%;
+            background-color: var(--whatsapp);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background 0.3s;
+            text-align: center;
+        }
+
+        .btn-ws:hover {
+            background-color: var(--whatsapp-dark);
+        }
+
+        .section-title {
+            text-align: center;
+            color: var(--primary);
+            margin: 30px 0 15px 0;
+            font-size: 1.5rem;
+        }
+
+        /* FLOTA */
+        .grid-fleet {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .card-fleet {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--primary);
+            padding: 20px;
+        }
+
+        .card-fleet h3 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .card-fleet ul {
+            padding-left: 20px;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+
+        /* BENEFICIOS */
+        .grid-features {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .feature-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .feature-box .icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .feature-box h4 {
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .feature-box p {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        /* PREGUNTAS FRECUENTES */
+        .faq-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            border-left: 4px solid var(--primary);
+        }
+
+        .faq-item h4 {
+            color: var(--primary);
+            margin-bottom: 6px;
+            font-size: 1rem;
+        }
+
+        .faq-item p {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        footer {
+            background-color: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 30px 15px;
+            margin-top: 40px;
+            font-size: 0.9rem;
+        }
+
+        .float-ws {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--whatsapp);
+            color: white;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 2px 4px 10px rgba(0,0,0,0.3);
+            text-decoration: none;
+            z-index: 999;
+        }
+
+        /* MEDIA QUERIES PARA TABLETAS Y PC */
+        @media (min-width: 600px) {
+            header {
+                padding: 50px 20px 80px 20px;
+            }
+            header h1 {
+                font-size: 2.2rem;
+            }
+            .quote-card {
+                padding: 30px;
+            }
+            .quote-card h2 {
+                font-size: 1.5rem;
+            }
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+            .grid-features {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            #map {
+                height: 300px;
+            }
+        }
+
+        @media (min-width: 900px) {
+            .grid-fleet {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .grid-features {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Renta de Autobuses Atenas</h1>
+        <p>Servicio de transporte para Acatlán de Osorio, la Mixteca y todo México</p>
+    </header>
+
+    <div class="container">
+
+        <!-- FORMULARIO DE COTIZACIÓN -->
+        <div class="quote-card">
+            <h2>Cotiza tu Viaje Personalizado</h2>
+            <form id="cotizadorForm" autocomplete="off">
+                
+                <div class="form-grid">
+                    <div class="form-control">
+                        <label>Lugar o Dirección de Origen:</label>
+                        <input type="text" id="origen" placeholder="Escribe calle, número, colonia o C.P." oninput="autocompletarDireccion()" required>
+                        <div id="autocomplete-list" class="autocomplete-list"></div>
+                    </div>
+                    <div class="form-control">
+                        <label>Destino:</label>
+                        <input type="text" id="destino" placeholder="Ej. Ciudad de México, Veracruz, Juquila" required>
+                    </div>
+                    <div class="form-control">
+                        <label>Pasajeros aproximados:</label>
+                        <input type="number" id="pasajeros" placeholder="Ej. 15, 40" required>
+                    </div>
+                    <div class="form-control">
+                        <label>Unidad de interés:</label>
+                        <select id="unidad">
+                            <option value="Cualquiera / Recomendada">Cualquiera / Recomendada</option>
+                            <option value="Camioneta Sprinter">Camioneta Sprinter</option>
+                            <option value="Autobús Irizar Century">Autobús Irizar Century</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-control">
+                        <label>Fecha y Hora de Salida:</label>
+                        <input type="datetime-local" id="fecha_salida" required>
+                    </div>
+                    <div class="form-control">
+                        <label>Fecha y Hora de Regreso:</label>
+                        <input type="datetime-local" id="fecha_llegada" required>
+                    </div>
+                </div>
+
+                <!-- SELECCIÓN EN EL MAPA -->
+                <div class="map-container">
+                    <label>Punto exacto en el mapa:</label>
+                    <p class="map-instruction">📍 Al seleccionar tu dirección sugerida, el mapa se actualizará automáticamente. Puedes ajustar el pin si lo requieres.</p>
+                    <div id="map"></div>
+                </div>
+
+                <button type="button" class="btn-ws" onclick="enviarWhatsApp()">
+                    Solicitar Cotización por WhatsApp
+                </button>
+            </form>
+        </div>
+
+        <!-- FLOTA -->
+        <h2 class="section-title">Nuestra Flota Disponible</h2>
+        <div class="grid-fleet">
+            <div class="card-fleet">
+                <h3>Camionetas Sprinter</h3>
+                <p><strong>Ideal para:</strong> Grupos medianos, traslados ejecutivos y comitivas familiares.</p>
+                <ul>
+                    <li>Asientos acojinados y reclinables</li>
+                    <li>Aire acondicionado independizado</li>
+                    <li>Amplia cajuela posterior</li>
+                </ul>
+            </div>
+
+            <div class="card-fleet">
+                <h3>Autobuses Irizar Century</h3>
+                <p><strong>Ideal para:</strong> Grupos grandes, excursiones turísticas, eventos religiosos y escolares.</p>
+                <ul>
+                    <li>Sanitario a bordo integrando mayor confort</li>
+                    <li>Sistema centralizado de aire acondicionado</li>
+                    <li>Bodegas inferiores de gran capacidad</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ¿POR QUÉ VIAJAR CON NOSOTROS? -->
+        <h2 class="section-title">¿Por qué viajar con nosotros?</h2>
+        <div class="grid-features">
+            <div class="feature-box">
+                <div class="icon">📍</div>
+                <h4>Atención Local</h4>
+                <p>Salidas directas desde Acatlán de Osorio.</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon">🛡️</div>
+                <h4>Seguridad Primero</h4>
+                <p>Mantenimiento preventivo en cada trayecto.</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon">👨‍✈️</div>
+                <h4>Choferes Profesionales</h4>
+                <p>Personal capacitado y con amplia experiencia.</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon">🤝</div>
+                <h4>Trato Directo</h4>
+                <p>Sin intermediarios ni cobros ocultos.</p>
+            </div>
+        </div>
+
+        <!-- PREGUNTAS FRECUENTES -->
+        <h2 class="section-title">Preguntas Frecuentes</h2>
+        <div class="faq-item">
+            <h4>¿Qué incluye el costo de la renta?</h4>
+            <p>Incluye la unidad seleccionada, el conductor calificado y el combustible de la ruta acordada.</p>
+        </div>
+        <div class="faq-item">
+            <h4>¿Con cuánto tiempo debo reservar?</h4>
+            <p>Se recomienda apartar con al menos 1 o 2 semanas de anticipación para garantizar disponibilidad.</p>
+        </div>
+        <div class="faq-item">
+            <h4>¿Hacen viajes a cualquier parte del país?</h4>
+            <p>Sí, cubrimos traslados locales en Puebla y servicios foráneos hacia cualquier estado de la República.</p>
+        </div>
+
+    </div>
+
+    <!-- BOTÓN FLOTANTE -->
+    <a href="#" class="float-ws" onclick="enviarWhatsAppFlotante()" aria-label="Abrir WhatsApp">💬</a>
+
+    <footer>
+        <p><strong>Renta de Autobuses Atenas</strong></p>
+        <p>Acatlán de Osorio, Puebla | Viajes locales y foráneos</p>
+        <p><small>&copy; 2026 Todos los derechos reservados.</small></p>
+    </footer>
+
+    <script>
+        const TELEFONO_WHATSAPP = "522222098824"; 
+
+        let latitud = 18.2023;
+        let longitud = -98.0486;
+
+        const map = L.map('map').setView([latitud, longitud], 14);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        let marker = L.marker([latitud, longitud], {draggable: true}).addTo(map);
+
+        marker.on('dragend', function(e) {
+            let position = marker.getLatLng();
+            latitud = position.lat.toFixed(5);
+            longitud = position.lng.toFixed(5);
+        });
+
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
+            latitud = e.latlng.lat.toFixed(5);
+            longitud = e.latlng.lng.toFixed(5);
+        });
+
+        let timerBusqueda;
+        function autocompletarDireccion() {
+            clearTimeout(timerBusqueda);
+            const input = document.getElementById('origen');
+            const listContainer = document.getElementById('autocomplete-list');
+            const query = input.value;
+
+            if (query.trim().length < 3) {
+                listContainer.style.display = 'none';
+                return;
+            }
+
+            timerBusqueda = setTimeout(() => {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=mx&limit=5&q=${encodeURIComponent(query)}`;
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        listContainer.innerHTML = '';
+
+                        if (data && data.length > 0) {
+                            listContainer.style.display = 'block';
+
+                            data.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'autocomplete-item';
+                                div.textContent = item.display_name;
+
+                                div.onclick = function() {
+                                    input.value = item.display_name;
+                                    listContainer.style.display = 'none';
+
+                                    latitud = parseFloat(item.lat).toFixed(5);
+                                    longitud = parseFloat(item.lon).toFixed(5);
+
+                                    map.setView([item.lat, item.lon], 16);
+                                    marker.setLatLng([item.lat, item.lon]);
+                                };
+
+                                listContainer.appendChild(div);
+                            });
+                        } else {
+                            listContainer.style.display = 'none';
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error al obtener sugerencias:", err);
+                        listContainer.style.display = 'none';
+                    });
+            }, 300);
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target.id !== 'origen') {
+                document.getElementById('autocomplete-list').style.display = 'none';
+            }
+        });
+
+        function enviarWhatsApp() {
+            const origen = document.getElementById('origen').value;
+            const destino = document.getElementById('destino').value;
+            const pasajeros = document.getElementById('pasajeros').value;
+            const unidad = document.getElementById('unidad').value;
+            const fechaSalida = document.getElementById('fecha_salida').value;
+            const fechaLlegada = document.getElementById('fecha_llegada').value;
+
+            if (!origen || !destino || !pasajeros || !fechaSalida || !fechaLlegada) {
+                alert("Por favor completa los campos del formulario.");
+                return;
+            }
+
+            const fSalida = fechaSalida.replace('T', ' a las ');
+            const fLlegada = fechaLlegada.replace('T', ' a las ');
+            const linkGoogleMaps = "https://www.google.com/maps?q=" + latitud + "," + longitud;
+
+            let mensaje = "Hola, me interesa cotizar un viaje con Autobuses Atenas:\n\n";
+            mensaje += "• Origen: " + origen + "\n";
+            mensaje += "• Destino: " + destino + "\n";
+            mensaje += "• Pasajeros: " + pasajeros + "\n";
+            mensaje += "• Unidad: " + unidad + "\n";
+            mensaje += "• Fecha de Salida: " + fSalida + "\n";
+            mensaje += "• Fecha de Regreso: " + fLlegada + "\n";
+            mensaje += "• Ubicación en mapa: " + linkGoogleMaps;
+
+            const url = "https://wa.me/" + TELEFONO_WHATSAPP + "?text=" + encodeURIComponent(mensaje);
+            window.open(url, '_blank');
+        }
+
+        function enviarWhatsAppFlotante() {
+            const mensaje = "Hola, me gustaría solicitar informes sobre la renta de unidades con Autobuses Atenas.";
+            const url = "https://wa.me/" + TELEFONO_WHATSAPP + "?text=" + encodeURIComponent(mensaje);
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
